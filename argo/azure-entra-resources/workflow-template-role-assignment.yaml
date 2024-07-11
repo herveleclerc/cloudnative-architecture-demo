@@ -1,0 +1,113 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-tpl-ad-role-assignment-creation
+  namespace: argo
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: role-assignment-list  
+    steps:
+    - - name: get-groups-ids
+        template: get-group-id
+        arguments:
+          parameters:
+          - name: role-assignment-list
+            value: '{{inputs.parameters.role-assignment-list}}'
+
+    - - name: create-role-assignments
+        template: create-role-assignment
+        arguments:
+          parameters:
+          - name: group-id
+            value: "{{item.group_id}}"
+          - name: subscription
+            value: "{{item.subscription}}"
+          - name: role
+            value: "{{item.role}}"
+          - name: role_name
+            value: "{{item.role_name}}"           
+          - name: group
+            value: "{{item.group}}"           
+        withParam: "{{steps.get-groups-ids.outputs.parameters.role-assignment-ids}}"
+
+  - name: get-group-id
+    inputs:
+      parameters:
+      - name: role-assignment-list
+    retryStrategy:
+      limit: "100"
+      retryPolicy: "Always"
+      backoff:
+        duration: "10s"
+        factor: 2
+        maxDuration: "2m"
+    outputs:
+      parameters:
+      - name: role-assignment-ids
+        valueFrom:
+          path: /tmp/role-assignment-ids.json
+    script:
+      image: bitnami/kubectl:latest
+      command: [bash]
+      source: |
+        set -e
+        get_group_id() {
+          local groupname="$1"
+          groupid=$(kubectl get group "$groupname" -o jsonpath='{.status.atProvider.id}')
+          echo $groupid
+        }
+
+        json_objects=()
+
+        while read -r entry; do
+      
+            groupname=$(echo "$entry" | jq -r '.group')
+            subscription=$(echo "$entry" | jq -r '.subscription')
+            
+            group_id=$(get_group_id "$groupname")
+
+            if [ -z "$group_id" ]; then
+              echo "Erreur : group_id est vide pour le groupe $groupname" >&2
+              exit 1
+            fi
+
+            count=0
+
+            while read -r role; do
+              count=$((count + 1))
+              role_name="r$count"
+              json_objects+=("{\"subscription\":\"$subscription\",\"role_name\":\"$role_name\",\"group\":\"$groupname\",\"group_id\":\"$group_id\",\"role\":\"$role\"}")
+            done < <(echo "$entry" | jq -r '.roles[]')
+
+        
+        done < <(echo '{{inputs.parameters.role-assignment-list}}' | jq -c '.[]')
+
+        json_array="[$(IFS=,; echo "${json_objects[*]}")]"
+  
+        echo -n "${json_array}" | jq -r  > /tmp/role-assignment-ids.json
+  
+
+  - name: create-role-assignment
+    inputs:
+      parameters:
+      - name: group-id
+      - name: subscription
+      - name: role
+      - name: role_name
+      - name: group
+    resource:
+      action: apply
+      manifest: |
+        apiVersion: authorization.azure.upbound.io/v1beta1
+        kind: RoleAssignment
+        metadata:
+          name: {{inputs.parameters.role_name}}-{{inputs.parameters.group}}
+        spec:
+          forProvider:
+            principalId: {{inputs.parameters.group-id}}
+            roleDefinitionName: "{{inputs.parameters.role}}"
+            scope: /subscriptions/{{inputs.parameters.subscription}}

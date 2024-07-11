@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-tpl-capsule-proxy-release
+  namespace: argo
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: chart-version
+      - name: additionalSANs
+      - name: ignoredUserGroups
+    retryStrategy:
+      limit: "100"
+      retryPolicy: "Always"
+      backoff:
+        duration: "10s"
+        factor: 2
+        maxDuration: "2m"
+    resource:
+      action: apply
+      manifest: |
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: Release
+        metadata:
+          name: capsule-proxy
+        spec:
+          forProvider:
+            chart:
+              name: capsule-proxy
+              repository: https://projectcapsule.github.io/charts
+              version: "{{inputs.parameters.chart-version}}"
+            namespace: capsule-system
+            values:
+              crds:
+                install: "true"
+              service:
+                type: LoadBalancer
+                port: 443
+                annotations:
+                  service.beta.kubernetes.io/azure-dns-label-name: capsule-proxy
+              options:
+                oidcUsernameClaim: unique_name
+                ignoredUserGroups:
+                  - "{{inputs.parameters.ignoredUserGroups}}"
+                additionalSANs:
+                  - "{{inputs.parameters.additionalSANs}}"
+          providerConfigRef:
+            name: helm-provider
+

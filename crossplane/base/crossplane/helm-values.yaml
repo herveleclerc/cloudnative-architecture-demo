@@ -1,0 +1,7 @@
+helmChart:
+  repo: https://charts.crossplane.io/stable
+  chartName: crossplane
+  chartVersion: 1.16.0
+  releaseName: crossplane
+  namespace: crossplane-system
+  skipPrePull: true

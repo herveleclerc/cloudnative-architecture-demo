@@ -1,0 +1,44 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-tpl-resource-group-creation
+  namespace: argo
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: resource-group-list
+    steps:
+    - - name: create-resource-groups
+        template: create-resource-group
+        arguments:
+          parameters:
+          - name: resource-group-name
+            value: "{{item.resource-group-name}}"
+          - name: location
+            value: "{{item.location}}"
+        withParam: "{{inputs.parameters.resource-group-list}}"
+
+  - name: create-resource-group
+    inputs:
+      parameters:
+      - name: resource-group-name
+      - name: location
+    resource:
+      action: apply
+      manifest: |
+        apiVersion: azure.upbound.io/v1beta1
+        kind: ResourceGroup
+        metadata:
+          labels:
+            aw.upbound.io/rg-name: "{{inputs.parameters.resource-group-name}}"
+          name: "{{inputs.parameters.resource-group-name}}"
+        spec:
+          forProvider:
+            location: "{{inputs.parameters.location}}"
+            tags:
+              provisioner: crossplane
+

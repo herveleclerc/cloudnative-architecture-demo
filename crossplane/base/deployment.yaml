@@ -1,0 +1,12 @@
+deployments:
+- path: namespaces
+- barrier: true
+- path: crossplane
+- barrier: true
+- path: creds
+- barrier: true
+- path: providers
+  waitReadiness: true
+- barrier: true
+- path: providers-configs
+- barrier: true

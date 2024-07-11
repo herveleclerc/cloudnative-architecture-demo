@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-tpl-get-group-id
+  namespace: argo
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: group-name
+    retryStrategy:
+      limit: "100"
+      retryPolicy: "Always"
+      backoff:
+        duration: "10s"
+        factor: 2
+        maxDuration: "2m"
+    outputs:
+      parameters:
+      - name: group-id
+        valueFrom:
+          path: /tmp/group-id.json
+    script:
+      image: bitnami/kubectl:latest
+      command: [bash]
+      source: |
+        set -e
+        get_group_id() {
+          local groupname="$1"
+          groupid=$(kubectl get group "$groupname" -o jsonpath='{.status.atProvider.id}')
+          echo $groupid
+        }
+
+        groupname="{{inputs.parameters.group-name}}"
+        group_id=$(get_group_id "$groupname")
+
+        echo "GROUP ID = $group_id"
+
+        echo -n "$group_id" > /tmp/group-id.json
+        

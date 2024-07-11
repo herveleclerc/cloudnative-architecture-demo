@@ -1,0 +1,56 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-tpl-subnet-creation
+  namespace: argo
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: subnet-list
+    steps:
+    - - name: create-subnets
+        template: create-subnet
+        arguments:
+          parameters:
+          - name: vnet-name
+            value: "{{item.vnet-name}}"
+          - name: subnet-name
+            value: "{{item.subnet-name}}"
+          - name: resource-group-name
+            value: "{{item.resource-group-name}}"
+          - name: addressPrefixes
+            value: "{{item.addressPrefixes}}"
+        withParam: "{{inputs.parameters.subnet-list}}"
+
+  - name: create-subnet
+    inputs:
+      parameters:
+      - name: subnet-name
+      - name: resource-group-name
+      - name: addressPrefixes
+      - name: vnet-name
+    resource:
+      action: apply
+      manifest: |      
+        apiVersion: network.azure.upbound.io/v1beta1
+        kind: Subnet
+        metadata:
+          annotations:
+            upjet.upbound.io/manual-intervention: The resource is dependency of root resource.
+          labels:
+            aw.upbound.io/subnet-name: "{{inputs.parameters.subnet-name}}"
+          name: "{{inputs.parameters.subnet-name}}"
+        spec:
+          forProvider:
+            addressPrefixes:
+              - {{inputs.parameters.addressPrefixes}}
+            resourceGroupNameSelector:
+              matchLabels:
+                aw.upbound.io/rg-name: {{inputs.parameters.resource-group-name}}
+            virtualNetworkNameSelector:
+              matchLabels:
+                aw.upbound.io/vnet-name: {{inputs.parameters.vnet-name}}

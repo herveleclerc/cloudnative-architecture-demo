@@ -1,0 +1,114 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-tpl-ad-membership-creation
+  namespace: argo
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: member-list  
+    steps:
+    - - name: get-users-groups-ids
+        template: get-user-group-ids
+        arguments:
+          parameters:
+          - name: member-list
+            value: '{{inputs.parameters.member-list}}'
+
+    - - name: create-memberships
+        template: create-membership
+        arguments:
+          parameters:
+          - name: group-id
+            value: "{{item.group_id}}"
+          - name: user-id
+            value: "{{item.user_id}}"
+          - name: user
+            value: "{{item.user}}"
+          - name: group
+            value: "{{item.group}}"           
+        withParam: "{{steps.get-users-groups-ids.outputs.parameters.member-ids}}"
+
+  - name: get-user-group-ids
+    inputs:
+      parameters:
+      - name: member-list
+    retryStrategy:
+      limit: "100"
+      retryPolicy: "Always"
+      backoff:
+        duration: "10s"
+        factor: 2
+        maxDuration: "2m"
+    outputs:
+      parameters:
+      - name: member-ids
+        valueFrom:
+          path: /tmp/member-ids.json
+    script:
+      image: bitnami/kubectl:latest
+      command: [bash]
+      source: |
+        set -e
+        get_user_id() {
+          local username="$1"
+          userid=$(kubectl get user "$username" -o jsonpath='{.status.atProvider.id}')
+          echo $userid
+        }
+        get_group_id() {
+          local groupname="$1"
+          groupid=$(kubectl get group "$groupname" -o jsonpath='{.status.atProvider.id}')
+          echo $groupid
+        }
+
+        json_objects=()
+
+        while read -r entry; do
+            username=$(echo "$entry" | jq -r '.user')
+            groupname=$(echo "$entry" | jq -r '.group')
+            user_id=$(get_user_id "$username")
+            group_id=$(get_group_id "$groupname")
+
+
+            if [ -z "$user_id" ]; then
+              echo "Erreur : user_id est vide pour l'utilisateur $username" >&2
+              exit 1
+            fi
+
+            if [ -z "$group_id" ]; then
+              echo "Erreur : group_id est vide pour le groupe $groupname" >&2
+              exit 1
+            fi
+
+            json_objects+=("{\"user\":\"$username\",\"user_id\":\"$user_id\",\"group\":\"$groupname\",\"group_id\":\"$group_id\"}")
+        done < <(echo '{{inputs.parameters.member-list}}' | jq -c '.[]')
+
+        json_array="[$(IFS=,; echo "${json_objects[*]}")]"
+  
+        echo -n "${json_array}" | jq -r  > /tmp/member-ids.json
+        
+        #cat /tmp/member-ids
+
+        #echo $json_array
+
+  - name: create-membership
+    inputs:
+      parameters:
+      - name: group-id
+      - name: user-id
+      - name: user
+      - name: group
+    resource:
+      action: apply
+      manifest: |
+        apiVersion: groups.azuread.upbound.io/v1beta1
+        kind: Member
+        metadata:
+          name: "{{inputs.parameters.user}}-{{inputs.parameters.group}}"
+        spec:
+          forProvider:
+            groupObjectId:  "{{inputs.parameters.group-id}}"
+            memberObjectId: "{{inputs.parameters.user-id}}"

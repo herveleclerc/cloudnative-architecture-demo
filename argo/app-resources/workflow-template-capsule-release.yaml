@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-tpl-capsule-release
+  namespace: argo
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: chart-version
+      - name: capsuleUserGroups
+    retryStrategy:
+      limit: "100"
+      retryPolicy: "Always"
+      backoff:
+        duration: "10s"
+        factor: 2
+        maxDuration: "2m"
+    resource:
+      action: apply
+      manifest: |
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: Release
+        metadata:
+          name: capsule
+        spec:
+          forProvider:
+            chart:
+              name: capsule
+              repository: https://projectcapsule.github.io/charts
+              version: "{{inputs.parameters.chart-version}}"
+            namespace: capsule-system
+            values:
+              manager:
+                options:
+                  forceTenantPrefix: "true"
+                  capsuleUserGroups:
+                    - "{{inputs.parameters.capsuleUserGroups}}"
+          providerConfigRef:
+            name: helm-provider
+            

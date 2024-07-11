@@ -1,0 +1,37 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-tpl-ad-groups-creation
+  namespace: argo
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: group-list
+    steps:
+    - - name: create-groups
+        template: create-group
+        arguments:
+          parameters:
+          - name: group-name
+            value: "{{item}}"
+        withParam: "{{inputs.parameters.group-list}}"
+
+  - name: create-group
+    inputs:
+      parameters:
+      - name: group-name
+    resource:
+      action: apply
+      manifest: |
+        apiVersion: groups.azuread.upbound.io/v1beta1
+        kind: Group
+        metadata:
+          name: "{{inputs.parameters.group-name}}"
+        spec:
+          forProvider:
+            displayName: "{{inputs.parameters.group-name}}"
+            securityEnabled: true

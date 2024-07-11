@@ -1,0 +1,7 @@
+discriminator: crossplane-{{ target.name }}
+targets:
+  - name: poc
+    args:
+      environment: poc
+args:
+  - name: environment

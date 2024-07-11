@@ -1,0 +1,1 @@
+kubectl -n argo exec argo-workflows-server-XXXXXXXX -- argo auth token

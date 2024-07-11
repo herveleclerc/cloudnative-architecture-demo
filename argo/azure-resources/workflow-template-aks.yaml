@@ -1,0 +1,126 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-tpl-aks-creation
+  namespace: argo
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: aks-list
+      - name: group-admin-id
+    steps:
+    - - name: create-akss
+        template: create-aks
+        arguments:
+          parameters:
+          - name: group-admin-id
+            value: "{{inputs.parameters.group-admin-id}}"
+          - name: aks-name
+            value: "{{item.aks-name}}"
+          - name: location
+            value: "{{item.location}}"
+          - name: resource-group-name
+            value: "{{item.resource-group-name}}"
+          - name: subnet-name
+            value: "{{item.subnet-name}}"            
+          - name: dnsPrefix
+            value: "{{item.dnsPrefix}}"
+          - name: kubernetesVersion
+            value: "{{item.kubernetesVersion}}"
+          - name: vmSize
+            value: "{{item.vmSize}}"
+          - name: enableAutoScaling
+            value: "{{item.enableAutoScaling}}"
+          - name: minCount
+            value: "{{item.minCount}}"
+          - name: maxCount
+            value: "{{item.maxCount}}"
+          - name: maxPods
+            value: "{{item.maxPods}}"
+          - name: osDiskSizeGb
+            value: "{{item.osDiskSizeGb}}"
+          - name: osSku
+            value: "{{item.osSku}}"
+          - name: serviceCidr
+            value: "{{item.serviceCidr}}"
+          - name: podCidr
+            value: "{{item.podCidr}}"
+          - name: dnsServiceIp
+            value: "{{item.dnsServiceIp}}"
+        withParam: "{{inputs.parameters.aks-list}}"
+
+  - name: create-aks
+    inputs:
+      parameters:
+      - name: aks-name
+      - name: location
+      - name: resource-group-name
+      - name: dnsPrefix
+      - name: kubernetesVersion
+      - name: vmSize
+      - name: enableAutoScaling
+      - name: minCount
+      - name: maxCount
+      - name: maxPods
+      - name: osDiskSizeGb
+      - name: osSku
+      - name: serviceCidr
+      - name: podCidr
+      - name: dnsServiceIp
+      - name: group-admin-id
+      - name: subnet-name
+
+    resource:
+      action: apply
+      manifest: |        
+        apiVersion: containerservice.azure.upbound.io/v1beta2
+        kind: KubernetesCluster
+        metadata:
+          labels:
+            aw.upbound.io/aks-name: {{inputs.parameters.aks-name}}
+          name: {{inputs.parameters.aks-name}}
+        spec:
+          forProvider:
+            dnsPrefix:  {{inputs.parameters.dnsPrefix}}
+            kubernetesVersion: {{inputs.parameters.kubernetesVersion}}
+            identity:
+              type: SystemAssigned
+            resourceGroupNameSelector:
+              matchLabels:
+                aw.upbound.io/rg-name: {{inputs.parameters.resource-group-name}}
+            nodeResourceGroup: {{inputs.parameters.resource-group-name}}-vm
+            location: "{{inputs.parameters.location}}"
+            automaticChannelUpgrade: "patch"
+            #oidcIssuerEnabled: true
+            #workloadIdentityEnabled: true
+            #skuTier: Standard 
+            runCommandEnabled: true
+            #localAccountDisabled: true
+            azureActiveDirectoryRoleBasedAccessControl:
+              azureRbacEnabled: true 
+              managed: true
+              adminGroupObjectIds: ["{{inputs.parameters.group-admin-id}}"]
+            defaultNodePool:
+              name: default
+              vnetSubnetIdSelector:
+                matchLabels:
+                 aw.upbound.io/subnet-name: "{{inputs.parameters.subnet-name}}"
+              vmSize: "{{inputs.parameters.vmSize}}"
+              enableAutoScaling: {{inputs.parameters.enableAutoScaling}}
+              minCount: {{inputs.parameters.minCount}}
+              maxCount: {{inputs.parameters.maxCount}}
+              maxPods: {{inputs.parameters.maxPods}}
+              osDiskSizeGb: {{inputs.parameters.osDiskSizeGb}}
+              osSku: "{{inputs.parameters.osSku}}"
+            networkProfile:
+              serviceCidr: "{{inputs.parameters.serviceCidr}}"
+              podCidr: "{{inputs.parameters.podCidr}}"
+              dnsServiceIp: "{{inputs.parameters.dnsServiceIp}}"
+          writeConnectionSecretToRef:
+            name: "{{inputs.parameters.aks-name}}-connection"
+            namespace: crossplane-system
+  

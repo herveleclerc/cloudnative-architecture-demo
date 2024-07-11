@@ -1,0 +1,69 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-tpl-ad-users-creation
+  namespace: argo
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: user-list  
+    steps:
+    - - name: create-secrets
+        template: create-secret
+        arguments:
+          parameters:
+          - name: user-name
+            value: "{{item.user}}"
+          - name: secret
+            value: "{{item.secret}}"
+        withParam: "{{inputs.parameters.user-list}}"
+
+    - - name: create-users
+        template: create-user
+        arguments:
+          parameters:
+          - name: user-name
+            value: "{{item.user}}"
+          - name: domain
+            value: "{{item.domain}}"
+        withParam: "{{inputs.parameters.user-list}}"
+
+  - name: create-secret
+    inputs:
+      parameters:
+      - name: user-name
+      - name: secret
+    resource:
+      action: apply
+      manifest: |
+        apiVersion: v1
+        stringData:
+          credentials: "{{inputs.parameters.secret}}"
+        kind: Secret
+        metadata:
+          name: {{inputs.parameters.user-name}}
+          namespace: crossplane-system
+
+  - name: create-user
+    inputs:
+      parameters:
+      - name: user-name
+      - name: domain
+    resource:
+      action: apply
+      manifest: |
+        apiVersion: users.azuread.upbound.io/v1beta1
+        kind: User
+        metadata:
+          name: "{{inputs.parameters.user-name}}"
+        spec:
+          forProvider:
+            displayName: "{{inputs.parameters.user-name}}"
+            passwordSecretRef:
+              key: credentials
+              name: "{{inputs.parameters.user-name}}"
+              namespace: crossplane-system
+            userPrincipalName: "{{inputs.parameters.user-name}}@{{inputs.parameters.domain}}"

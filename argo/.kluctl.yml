@@ -1,0 +1,7 @@
+discriminator: azure-crossplane-argo-{{ target.name }}
+targets:
+  - name: aw
+    args:
+      environment: aw
+args:
+  - name: environment

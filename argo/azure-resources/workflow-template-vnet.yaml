@@ -1,0 +1,57 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-tpl-vnet-creation
+  namespace: argo
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: vnet-list
+    steps:
+    - - name: create-vnets
+        template: create-vnet
+        arguments:
+          parameters:
+          - name: vnet-name
+            value: "{{item.vnet-name}}"
+          - name: location
+            value: "{{item.location}}"
+          - name: resource-group-name
+            value: "{{item.resource-group-name}}"
+          - name: addressSpace
+            value: "{{item.addressSpace}}"
+
+        withParam: "{{inputs.parameters.vnet-list}}"
+
+  - name: create-vnet
+    inputs:
+      parameters:
+      - name: vnet-name
+      - name: location
+      - name: resource-group-name
+      - name: addressSpace
+    resource:
+      action: apply
+      manifest: |
+        apiVersion: network.azure.upbound.io/v1beta1
+        kind: VirtualNetwork
+        metadata:
+          annotations:
+            upjet.upbound.io/manual-intervention: The resource is dependency of root resource.
+          labels:
+            aw.upbound.io/vnet-name: "{{inputs.parameters.vnet-name}}"
+          name: "{{inputs.parameters.vnet-name}}"
+        spec:
+          forProvider:
+            addressSpace:
+              - "{{inputs.parameters.addressSpace}}"
+            location: "{{inputs.parameters.location}}"
+            resourceGroupNameSelector:
+              matchLabels:
+                aw.upbound.io/rg-name: "{{inputs.parameters.resource-group-name}}"
+
+              

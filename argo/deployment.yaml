@@ -1,0 +1,15 @@
+deployments:
+- path: namespaces
+- barrier: true
+- path: azure-entra-resources
+- barrier: true
+- path: azure-resources
+- barrier: true
+- path: app-resources
+- barrier: true
+- path: crossplane-provider-configs
+- barrier: true
+#- path: app-resources
+#- barrier: true
+#- path: tenants
+#- barrier: true

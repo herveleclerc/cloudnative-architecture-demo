@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  annotations:
+    kluctl.io/barrier: "true"
+    kluctl.io/wait-readiness: "true"
+
+resources:
+- provider-azure-ad.yaml
+- provider-azure-network.yaml
+- provider-azure-containerservice.yaml
+- provider-helm.yaml
+- provider-kubernetes.yaml
+- provider-azure-authorization.yaml
+
+

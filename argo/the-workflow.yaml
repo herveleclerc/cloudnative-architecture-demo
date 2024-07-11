@@ -1,0 +1,215 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: azure-aks-
+  namespace: argo
+  annotations:
+    workflows.argoproj.io/title: Create `Capsule` Multitenant Cluster
+    workflows.argoproj.io/description: Use of  `AD / AKS / Capsule`
+spec:
+  arguments:
+    parameters:
+    - name: chart-version
+      value: "0.7.0"
+
+  entrypoint: create-group-and-user
+  templates:
+  - name: create-group-and-user
+    dag:
+      tasks:
+      - name: create-groups
+        templateRef:
+          name: workflow-tpl-ad-groups-creation
+          template: main
+        arguments:
+          parameters:
+          - name: group-list
+            value: '["test-group-admin", "test-group-dev", "test-group-staging", "test-group-prod", "test-group"]'
+      - name: create-users
+        templateRef:
+          name: workflow-tpl-ad-users-creation
+          template: main 
+        arguments:
+          parameters:
+          - name: user-list
+            value: |
+              [
+              { "user": "test-user-admin",   "domain": "microsoftalterway.onmicrosoft.com", "secret": "##=p4ssw0rd=##"},
+              { "user": "test-user-dev",     "domain": "microsoftalterway.onmicrosoft.com", "secret": "##=p4ssw0rd=##"},
+              { "user": "test-user-staging", "domain": "microsoftalterway.onmicrosoft.com", "secret": "##=p4ssw0rd=##"},
+              { "user": "test-user-prod",    "domain": "microsoftalterway.onmicrosoft.com", "secret": "##=p4ssw0rd=##"}
+              ]
+      - name: create-membership
+        depends: "create-groups && create-users"
+        templateRef:
+          name: workflow-tpl-ad-membership-creation
+          template: main 
+        arguments:
+          parameters:
+          - name: member-list
+            value: |
+              [
+              { "user": "test-user-admin",   "group": "test-group"},
+              { "user": "test-user-admin",   "group": "test-group-admin"},
+              { "user": "test-user-dev",     "group": "test-group"},
+              { "user": "test-user-dev",     "group": "test-group-dev"},    
+              { "user": "test-user-staging", "group": "test-group"},
+              { "user": "test-user-staging", "group": "test-group-staging"},          
+              { "user": "test-user-prod",    "group": "test-group"},
+              { "user": "test-user-prod",    "group": "test-group-prod"}
+              ]
+
+      - name: create-role-assignment
+        depends: "create-groups && create-users"
+        templateRef:
+          name: workflow-tpl-ad-role-assignment-creation
+          template: main 
+        arguments:
+          parameters:
+          - name: role-assignment-list
+            value: |
+              [
+              {"group": "test-group-admin",   "subscription": "825160a9-2282-44b8-b33d-e95db95e4d56",    "roles": ["Reader","Azure Kubernetes Service Cluster User Role"]},
+              {"group": "test-group-dev",     "subscription": "825160a9-2282-44b8-b33d-e95db95e4d56",    "roles": ["Reader","Azure Kubernetes Service Cluster User Role"]},    
+              {"group": "test-group-staging", "subscription": "825160a9-2282-44b8-b33d-e95db95e4d56",    "roles": ["Reader","Azure Kubernetes Service Cluster User Role"]},          
+              {"group": "test-group-prod",    "subscription": "825160a9-2282-44b8-b33d-e95db95e4d56",    "roles": ["Reader","Azure Kubernetes Service Cluster User Role"]}
+              ]
+      - name: create-resource-group
+        templateRef:
+          name: workflow-tpl-resource-group-creation
+          template: main 
+        arguments:
+          parameters:
+          - name: resource-group-list
+            value: |
+              [
+              { "location": "northeurope", "resource-group-name": "aw-cn-001"}
+              ]
+      - name: create-vnet
+        depends: "create-resource-group"
+        templateRef:
+          name: workflow-tpl-vnet-creation
+          template: main 
+        arguments:
+          parameters:
+          - name: vnet-list
+            value: |
+              [
+              { "location": "northeurope","vnet-name": "aw-vnet-001", "resource-group-name": "aw-cn-001", "addressSpace": "10.0.0.0/16"}
+              ]
+      - name: create-subnet
+        depends: "create-resource-group && create-vnet"
+        templateRef:
+          name: workflow-tpl-subnet-creation
+          template: main
+        arguments:
+          parameters:
+          - name: subnet-list
+            value: |
+              [
+              { 
+              "vnet-name": "aw-vnet-001", 
+              "subnet-name": "aw-subnet-001", 
+              "resource-group-name": "aw-cn-001", 
+              "addressPrefixes": "10.0.0.0/19"
+              }
+              ]
+      - name: get-group-admin-id
+        depends: "create-groups"
+        templateRef:
+          name: workflow-tpl-get-group-id
+          template: main
+        arguments:
+          parameters:
+          - name: group-name 
+            value: "test-group-admin"
+      
+      - name: get-group-capsule-id
+        depends: "create-groups"
+        templateRef:
+          name: workflow-tpl-get-group-id
+          template: main
+        arguments:
+          parameters:
+          - name: group-name 
+            value: "test-group"
+
+      - name: create-aks
+        depends: "create-resource-group && create-vnet && create-subnet && get-group-admin-id"
+        templateRef:
+          name: workflow-tpl-aks-creation
+          template: main
+        arguments:
+          parameters:
+          - name: group-admin-id
+            value: "{{tasks.get-group-admin-id.outputs.parameters.group-id}}"
+          - name: aks-list
+            value: |
+              [
+              {
+              "resource-group-name": "aw-cn-001",
+              "subnet-name":"aw-subnet-001",
+              "aks-name": "aw-aks-001", 
+              "dnsPrefix": "awaks", 
+              "kubernetesVersion": "1.29.4",
+              "vmSize": "Standard_B2ms",
+              "enableAutoScaling": "true",
+              "minCount": "1",
+              "maxCount": "2",
+              "maxPods": "90",
+              "osDiskSizeGb": "50",
+              "osSku": "Mariner",
+              "serviceCidr": "100.64.0.0/16",
+              "podCidr": "100.99.0.0/16",
+              "dnsServiceIp": "100.64.0.53",
+              "location": "northeurope"
+              }
+              ]
+
+      - name: provider-config-helm
+        depends: "create-aks"
+        templateRef:
+          name: workflow-tpl-provider-config-helm
+          template: main
+        arguments:
+          parameters:
+          - name: aks-name 
+            value: "aw-aks-001"
+
+      - name: provider-config-kubernetes
+        depends: "create-aks"
+        templateRef:
+          name: workflow-tpl-provider-config-kubernetes
+          template: main
+        arguments:
+          parameters:
+          - name: aks-name 
+            value: "aw-aks-001"
+
+      - name: capsule-release
+        depends: "get-group-capsule-id && create-aks && provider-config-helm"
+        templateRef:
+          name: workflow-tpl-capsule-release
+          template: main
+        arguments:
+          parameters:
+          - name: chart-version
+            value: "{{workflow.parameters.chart-version}}"
+          - name: capsuleUserGroups
+            value: "{{tasks.get-group-capsule-id.outputs.parameters.group-id}}"
+
+      - name: capsule-proxy-release
+        depends: "get-group-admin-id && create-aks && provider-config-helm"
+        templateRef:
+          name: workflow-tpl-capsule-proxy-release
+          template: main
+        arguments:
+          parameters:
+          - name: chart-version
+            value: "{{workflow.parameters.chart-version}}"
+          - name: additionalSANs
+            value: "capsule-proxy.northeurope.cloudapp.azure.com"
+          - name: ignoredUserGroups
+            value: "{{tasks.get-group-admin-id.outputs.parameters.group-id}}"
+
+        

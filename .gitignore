@@ -1,0 +1,4 @@
+tests
+azure/credentials
+crossplane/base/creds/azure-credentials.json
+clean
