@@ -12,6 +12,62 @@ Tools Used:
 - **Clastix/Capsule**: Capsule is a Kubernetes operator that enables multi-tenancy and namespace-as-a-service capabilities in Kubernetes clusters.
 - **kluctl** : Kluctl is a GitOps-focused deployment tool for Kubernetes that emphasizes simplicity and declarative configurations.
 
+
+                           ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ 
+                            Workflow                             ┌─────────────────────────────────────────┐                                      │
+                           │                                     │                                         │                                       
+                                                                 │                                         │                                      │
+                           │                      ┌───────┐  ┌───────┐           ┌───────┐ ┌───────┐       │                                       
+                                                  │ user  │  │ admin │           │reader │ │  aks  │       │                                      │
+                           │                      └───────┘  └───────┘           └───────┘ └───────┘       │                                       
+                                                      │          │                  │          │           │                                      │
+                           │                          │          │                  │          │           │                                       
+                                                      │          │                  └───┬──────┘           │                                      │
+                           │                          │          │                      │                  │                                       
+                                                      │          │                      │                  │                                      │
+                           │        ┌──────────┐      │    ┌──────────┐           ┌──────────┐             │                                       
+                                    │          │      │    │          │           │   Role   │             │                                      │
+                           │        │  Users   │      └────│  Groups  │───────────│Assignment│             │                                       
+                                    │          │           │          │           │          │             │                                      │
+                           │        └──────────┘           └──────────┘           └──────────┘             │                                       
+                                          │                      │                                         │                                      │
+                           │              │                      │                                         │                                       
+                                          │                      │                                         │                                      │
+                           │              │                      │                                         │                                       
+                                          │     ┌──────────┐     │                                         │                                      │
+                           │              │     │  Group   │     │                                         │                                       
+                                          └─────│  Member  │─────┘                                         │                                      │
+                           │                    │          │                                               │                                       
+                                                └──────────┘                                               │                                      │
+                           │                                                                               │                                       
+                                                                                                           │                                      │
+                           │                                                                               │                                       
+                                                                                                           │                                      │
+                           │                                                                               │                                       
+                                        ┌──────────┐      ┌──────────┐      ┌──────────┐     ┌──────────┐  │                                      │
+                           │            │ Resource │      │          │      │          │     │          │  │                                       
+                                        │  Group   ├──────┤   Vnet   │──────│  Subnet  │─────│   AKS    │──┘                                      │
+                           │            │          │      │          │      │          │     │          │                                          
+                                        └──────────┘      └──────────┘      └──────────┘     └──────────┘                                         │
+                           │                                                                       │                                               
+                                                                                                   │                                              │
+                           │                                                                       │                                               
+                                                                                      ┌────────────┴──────────┐                                   │
+                           │                                                          │                       │                                    
+                                                                                      │                       │                                   │
+                           │                                                          │                       │                                    
+                                                                                      │  ┌─────────┐  ┌──────────────┐     ┌─────────┐            │
+                           │                                                          └──│ Capsule │  │Capsule-Proxy │─────│   LB    │             
+                                                                                         └─────────┘  └──────────────┘     └─────────┘            │
+                           │                                                                                                                       
+                                                                                                                                                  │
+                           │                                                                                                                       
+                                                                                                                                                  │
+                           └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ 
+
+
+
+
 Tasks: 
 
 - Create Microsoft Entra resources to activate Azure Entra Authentification on kubernetes
