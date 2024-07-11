@@ -42,7 +42,7 @@ Attention --all !
 kubectl delete releases.helm.crossplane.io  --all
 kubectl delete kubernetesclusters.containerservice.azure.upbound.io --all
 kubectl delete subnet --all
-kubectl delete virtualnetworkubectl --all
+kubectl delete virtualnetwork --all
 kubectl delete resourcegroup --all
 
 kubectl delete members.groups.azuread.upbound.io --all

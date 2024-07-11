@@ -36,7 +36,10 @@ spec:
         groupname="{{inputs.parameters.group-name}}"
         group_id=$(get_group_id "$groupname")
 
-        echo "GROUP ID = $group_id"
+        if [ -z "$group_id" ]; then
+          echo "Erreur : group_id est vide pour le groupe $groupname" >&2
+          exit 1
+        fi
 
         echo -n "$group_id" > /tmp/group-id.json
         
