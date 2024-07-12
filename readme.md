@@ -84,6 +84,59 @@ Tasks:
 ![argo wf](media/wf.png)
 
 
+## How to use it 
+
+
+Pre-requisites
+
+- CLI :
+  - kubectl 😉
+  - kluctl (https://kluctl.io/blog/)
+  - crossplane (https://docs.crossplane.io/v1.16/)
+  - argo workflow (https://argo-workflows.readthedocs.io/en/latest/)
+  
+- A kubernetes Management cluster (kind, aks, ...)
+- An Azure subscription and Entra rights
+
+For crossplane 
+
+If you want to do it by your own
+
+- Installation : https://docs.crossplane.io/v1.16/software/install/
+- To use with Azure : https://docs.crossplane.io/latest/getting-started/provider-azure/
+
+
+If you want to do it with this repository: 
+
+Go to crossplane directory
+
+Just put in `creds` a file named `azure-credentials.json`.
+
+Documentation here to know how generate it (Create a Kubernetes secret for Azure) : (https://docs.crossplane.io/latest/getting-started/provider-azure/)
+
+Then simply use :
+
+```bash
+kluctl deploy -t poc --prune --yes
+```
+
+## What you have to change / edit
+
+The values in `the-workflow.yaml` file 
+
+
+## How to create workflow template
+
+in argo directory : 
+
+```bash
+kluctl deploy -t aw --prune --yes
+```
+
+
+If all goes well to will have a ready to use AKS with AD authentication and Capsule.
+
+
 ## Tricks
 
 ### Clean
