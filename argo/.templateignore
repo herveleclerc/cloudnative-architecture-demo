@@ -18,3 +18,5 @@ crossplane-provider-configs/workflow-template-providerconfig-kubernetes.yaml
 
 app-resources/workflow-template-capsule-proxy-release.yaml
 app-resources/workflow-template-capsule-release.yaml
+
+tenants/workflow-template-capsule-tenant.yaml

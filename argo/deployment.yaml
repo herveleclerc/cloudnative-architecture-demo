@@ -9,7 +9,5 @@ deployments:
 - barrier: true
 - path: crossplane-provider-configs
 - barrier: true
-#- path: app-resources
-#- barrier: true
-#- path: tenants
-#- barrier: true
+- path: tenants
+- barrier: true

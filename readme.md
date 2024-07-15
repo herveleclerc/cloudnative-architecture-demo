@@ -12,8 +12,7 @@ Tools Used:
 - **Clastix/Capsule**: Capsule is a Kubernetes operator that enables multi-tenancy and namespace-as-a-service capabilities in Kubernetes clusters.
 - **kluctl** : Kluctl is a GitOps-focused deployment tool for Kubernetes that emphasizes simplicity and declarative configurations.
 
-<pre><code>┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
- Workflow                      ┌─────────────────────────────────────────┐     
+<pre><code> Workflow                      ┌─────────────────────────────────────────┐     
 │                              │                                         │    │
                                │                                         │     
 │               ┌───────┐  ┌───────┐           ┌───────┐ ┌───────┐       │    │
@@ -58,11 +57,16 @@ Tools Used:
                         │  ┌─────────┐  ┌──────────────┐     ┌─────────┐       
 │                       └──│ Capsule │  │Capsule-Proxy │─────│   LB    │      │
                            └─────────┘  └──────────────┘     └─────────┘       
+│                               │                                             │
+                         ┌──────┴────────┬───────────────┐                     
+│                        │               │               │                    │
+                  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐              
+│                 │ dev tenant  │ │ prod tenant │ │ ... tenant  │             │
+                  └─────────────┘ └─────────────┘ └─────────────┘              
 │                                                                             │
                                                                                
 │                                                                             │
-                                                                               
-└ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘</code></pre>
+ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ </code></pre>
 
 Tasks: 
 

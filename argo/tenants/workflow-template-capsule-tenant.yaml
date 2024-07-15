@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-tpl-capsule-tenant
+  namespace: argo
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: tenant-name
+      - name: group_id
+    resource:
+      action: apply
+      manifest: |
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        metadata:
+          name: tenant-{{inputs.parameters.tenant-name}}
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: capsule.clastix.io/v1beta1
+              kind: Tenant
+              metadata:
+                name: {{inputs.parameters.tenant-name}}
+              spec:
+                owners:
+                - name: tenant-{{inputs.parameters.group_id}}
+                  kind: Group
+          providerConfigRef:
+            name: kubernetes-provider
