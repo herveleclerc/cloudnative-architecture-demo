@@ -27,7 +27,7 @@ spec:
                 name: {{inputs.parameters.tenant-name}}
               spec:
                 owners:
-                - name: tenant-{{inputs.parameters.group_id}}
+                - name: {{inputs.parameters.group_id}}
                   kind: Group
           providerConfigRef:
             name: kubernetes-provider
