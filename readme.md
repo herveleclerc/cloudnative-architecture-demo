@@ -217,6 +217,7 @@ kubectl view-secret -n crossplane-system aw-aks-001-connection kubeconfig  > aw-
 
 ### Use it  
 
+```bash
 KUBECONFIG=aw-aks-001.conf  kubectl get ns  
 
 
