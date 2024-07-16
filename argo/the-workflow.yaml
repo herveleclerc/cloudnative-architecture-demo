@@ -13,6 +13,12 @@ spec:
       value: "0.7.0"
     - name: subscription
       value: "825160a9-2282-44b8-b33d-e95db95e4d56"
+    - name: userDomain
+      value: "microsoftalterway.onmicrosoft.com"
+    - name: location
+      value: "northeurope"
+    - name: resource-group-name
+      value: "aw-cn-001"
 
   entrypoint: create-group-and-user
   templates:
@@ -39,10 +45,10 @@ spec:
           - name: user-list
             value: |
               [
-              { "user": "test-user-admin",   "domain": "microsoftalterway.onmicrosoft.com", "secret": "##=p4ssw0rd=##"},
-              { "user": "test-user-dev",     "domain": "microsoftalterway.onmicrosoft.com", "secret": "##=p4ssw0rd=##"},
-              { "user": "test-user-staging", "domain": "microsoftalterway.onmicrosoft.com", "secret": "##=p4ssw0rd=##"},
-              { "user": "test-user-prod",    "domain": "microsoftalterway.onmicrosoft.com", "secret": "##=p4ssw0rd=##"}
+              { "user": "test-user-admin",   "domain": "{{workflow.parameters.userDomain}}", "secret": "##=p4ssw0rd=##"},
+              { "user": "test-user-dev",     "domain": "{{workflow.parameters.userDomain}}", "secret": "##=p4ssw0rd=##"},
+              { "user": "test-user-staging", "domain": "{{workflow.parameters.userDomain}}", "secret": "##=p4ssw0rd=##"},
+              { "user": "test-user-prod",    "domain": "{{workflow.parameters.userDomain}}", "secret": "##=p4ssw0rd=##"}
               ]
       # Create Relationship between users and groups
       - name: create-membership
@@ -90,7 +96,10 @@ spec:
           - name: resource-group-list
             value: |
               [
-              { "location": "northeurope", "resource-group-name": "aw-cn-001"}
+              { 
+              "location": "{{workflow.parameters.location}}", 
+              "resource-group-name": "{{workflow.parameters.resource-group-name}}"
+              }
               ]
       # Create Virtual Network
       - name: create-vnet
@@ -103,7 +112,12 @@ spec:
           - name: vnet-list
             value: |
               [
-              { "location": "northeurope","vnet-name": "aw-vnet-001", "resource-group-name": "aw-cn-001", "addressSpace": "10.0.0.0/16"}
+              { 
+              "location": "{{workflow.parameters.location}}",
+              "vnet-name": "aw-vnet-001", 
+              "resource-group-name": "{{workflow.parameters.resource-group-name}}", 
+              "addressSpace": "10.0.0.0/16"
+              }
               ]
       # Create a subnet into virtual network
       - name: create-subnet
@@ -119,7 +133,7 @@ spec:
               { 
               "vnet-name": "aw-vnet-001", 
               "subnet-name": "aw-subnet-001", 
-              "resource-group-name": "aw-cn-001", 
+              "resource-group-name": "{{workflow.parameters.resource-group-name}}", 
               "addressPrefixes": "10.0.0.0/19"
               }
               ]
@@ -157,7 +171,7 @@ spec:
             value: |
               [
               {
-              "resource-group-name": "aw-cn-001",
+              "resource-group-name": "{{workflow.parameters.resource-group-name}}",
               "subnet-name":"aw-subnet-001",
               "aks-name": "aw-aks-001", 
               "dnsPrefix": "awaks", 
@@ -172,7 +186,7 @@ spec:
               "serviceCidr": "100.64.0.0/16",
               "podCidr": "100.99.0.0/16",
               "dnsServiceIp": "100.64.0.53",
-              "location": "northeurope"
+              "location": "{{workflow.parameters.location}}"
               }
               ]
       # Configure Helm provider with AKS credentials
@@ -218,7 +232,7 @@ spec:
           - name: chart-version
             value: "{{workflow.parameters.chart-version}}"
           - name: additionalSANs
-            value: "capsule-proxy.northeurope.cloudapp.azure.com"
+            value: "capsule-proxy.{{workflow.parameters.location}}.cloudapp.azure.com"
           - name: ignoredUserGroups
             value: "{{tasks.get-group-admin-id.outputs.parameters.group-id}}"
 
